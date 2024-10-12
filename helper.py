@@ -13,6 +13,7 @@ def calculate_metric_gain_and_change(metric, df_development):
     :type metric: str
     :param df_development: DataFrame with overall daily security development
     :type df_development: pandas.DataFrame
+
     :return: Gain or loss
     :rtype: str
     :return: Percentual change
@@ -26,18 +27,17 @@ def calculate_metric_gain_and_change(metric, df_development):
 
     # Calculate last date
     last_dates = {
-        '1D': max_date - relativedelta(days=1),
-        '1W': max_date - relativedelta(weeks=1),
-        '1M': max_date - relativedelta(months=1),
-        '6M': max_date - relativedelta(months=6),
+        '1D': (max_date - relativedelta(days=1)).date(),
+        '1W': (max_date - relativedelta(weeks=1)).date(),
+        '1M': (max_date - relativedelta(months=1)).date(),
+        '6M': (max_date - relativedelta(months=6)).date(),
         'YTD': datetime.date(day=1, month=1, year=today.year),
-        '1Y': max_date - relativedelta(years=1),
-        '5Y': max_date - relativedelta(years=5),
-        'MAX': df_development['Date'].min()
+        '1Y': (max_date - relativedelta(years=1)).date(),
+        '5Y': (max_date - relativedelta(years=5)).date(),
+        'MAX': df_development['Date'].min().date()
     }
 
-    last_date = last_dates[metric].date() if metric != 'YTD' else last_dates[metric]
-    df_after_date = df_development.loc[df_development['Date'].dt.date >= last_date]
+    df_after_date = df_development.loc[df_development['Date'].dt.date >= last_dates[metric]]
     if len(df_after_date) == 0:    # If no investments that long ago
         return '-', '-'
 
@@ -52,7 +52,6 @@ def calculate_metric_gain_and_change(metric, df_development):
     return gain, pct_change
 
 def change_info_spelling(info):
-
     """
     Change spelling of descriptive information.
 

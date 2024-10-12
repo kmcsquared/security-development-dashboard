@@ -24,7 +24,7 @@ input_cols = st.columns(2)
 
 tickers_input = input_cols[0].text_input(
     label='What securities would you like to analyse?',
-    placeholder='Enter ticker symbols or ISIN codes separated by commas (e.g. AAPL,MSFT,US88160R1014)',
+    placeholder='Enter ticker symbols or ISIN codes separated by commas (AAPL,MSFT,US88160R1014)',
     help='''
     A ticker symbol or stock symbol is an abbreviation used to uniquely identify publicly 
     traded shares of a particular stock or security on a particular stock exchange.
@@ -72,9 +72,12 @@ else:
                     tickers=symbol
                 )
 
+                if len(df_development) == 0:
+                    st.write(f'No data was found for {symbol}.')
+                    continue
+
                 # Date as column instead of index
                 df_development = df_development.reset_index()
-
                 st.session_state[f'data_{symbol}'] = df_development
 
             df_development = st.session_state[f'data_{symbol}'].copy()
@@ -104,16 +107,19 @@ else:
                 title=ticker_names[symbol]
             )
 
+            Y_AXIS_TITLE = 'Close Price'
+            is_currency_known = 'currency' in tickers[symbol].info
+            if is_currency_known:
+                Y_AXIS_TITLE += f' ({tickers[symbol].info['currency']})'
+
             fig_development.update_layout(
                 xaxis_title='Date',
-                yaxis_title=f'Close Price ({tickers[symbol].info['currency']})'
+                yaxis_title=Y_AXIS_TITLE
             )
 
-            st.plotly_chart(fig_development)
+            st.plotly_chart(fig_development, use_container_width=True)
 
             # Display additional information
-            # Display only those keys that appear in ticker info
-
             key_and_info = {
                 'quoteType': 'Security Type',
                 'industry': 'Industry',
@@ -121,6 +127,7 @@ else:
                 'financialCurrency': 'Financial Currency'
             }
 
+            # Display only those keys that appear in ticker info
             info_existing = {k:i for k,i in key_and_info.items() if k in tickers[symbol].info}
             cols_info = st.columns(len(info_existing))
             for i, (key, info_type) in enumerate(info_existing.items()):
