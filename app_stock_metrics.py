@@ -1,4 +1,4 @@
-"""Replicates a simple investment performance dashboard"""
+"""A simple security development dashboard"""
 
 import plotly.express as px
 import streamlit as st
@@ -6,24 +6,31 @@ import yfinance as yf
 import helper
 
 st.set_page_config(
-    page_title='Stock Performance Dashboard',
+    page_title='Security Development Dashboard',
     page_icon=':chart_with_upwards_trend:',
     layout='wide'
 )
 
-st.title('Stock Performance Dashboard')
+st.title('Security Development Dashboard')
+st.write(
+    '''
+    This app allows you to analyse the development of 
+    securities (tradable financial assets) over time.
+    '''
+)
 
 # Ask user to input ticker symbol or ISIN code
 input_cols = st.columns(2)
 
 tickers_input = input_cols[0].text_input(
     label='What securities would you like to analyse?',
-    placeholder='''
-    Enter ticker symbols or ISIN codes separated by commas (e.g. AAPL,MSFT,US88160R1014)
-    ''',
+    placeholder='Enter ticker symbols or ISIN codes separated by commas (e.g. AAPL,MSFT,US88160R1014)',
     help='''
     A ticker symbol or stock symbol is an abbreviation used to uniquely identify publicly 
     traded shares of a particular stock or security on a particular stock exchange.
+
+    An International Securities Identification Number (ISIN) is a code that uniquely identifies 
+    a security globally for the purposes of facilitating clearing, reporting and settlement of trades.
     '''
 )
 
