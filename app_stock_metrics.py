@@ -60,85 +60,87 @@ else:
             else:
                 ticker_names[symbol] = symbol
 
-    # Display each security performance in its own tab
-    ticker_names = dict(sorted(ticker_names.items(), key=lambda item: item[1]))
-    tabs = st.tabs(ticker_names.values())
+    # If at least one symbol exists
+    if len(ticker_names) != 0:
+        # Display each security performance in its own tab
+        ticker_names = dict(sorted(ticker_names.items(), key=lambda item: item[1]))
+        tabs = st.tabs(ticker_names.values())
 
-    for tab_idx, symbol in enumerate(ticker_names.keys()):
-        with tabs[tab_idx]:
-            # Download security data
-            if f'data_{symbol}' not in st.session_state:
-                df_development = yf.download(
-                    tickers=symbol
+        for tab_idx, symbol in enumerate(ticker_names.keys()):
+            with tabs[tab_idx]:
+                # Download security data
+                if f'data_{symbol}' not in st.session_state:
+                    df_development = yf.download(
+                        tickers=symbol
+                    )
+
+                    if len(df_development) == 0:
+                        st.write(f'No data was found for {symbol}.')
+                        continue
+
+                    # Date as column instead of index
+                    df_development = df_development.reset_index()
+                    st.session_state[f'data_{symbol}'] = df_development
+
+                df_development = st.session_state[f'data_{symbol}'].copy()
+
+                # Calculate the price change over a period of time
+                # and display metrics horizontally
+                metrics = ['1D', '1W', '1M', '6M', 'YTD', '1Y', '5Y', 'MAX']
+                cols_metrics = st.columns(len(metrics))
+                for col_idx, metric in enumerate(metrics):
+                    gain, change_pct = helper.calculate_metric_gain_and_change(
+                        metric,
+                        df_development
+                    )
+
+                    cols_metrics[col_idx].metric(
+                        label=metric,
+                        value=gain,
+                        delta=change_pct,
+                        delta_color='off' if change_pct == '-' else 'normal'
+                    )
+
+                # Plot development
+                fig_development = px.line(
+                    df_development.reset_index(),
+                    x='Date',
+                    y='Close',
+                    title=ticker_names[symbol]
                 )
 
-                if len(df_development) == 0:
-                    st.write(f'No data was found for {symbol}.')
-                    continue
+                Y_AXIS_TITLE = 'Close Price'
+                is_currency_known = 'currency' in tickers[symbol].info
+                if is_currency_known:
+                    Y_AXIS_TITLE += f' ({tickers[symbol].info['currency']})'
 
-                # Date as column instead of index
-                df_development = df_development.reset_index()
-                st.session_state[f'data_{symbol}'] = df_development
-
-            df_development = st.session_state[f'data_{symbol}'].copy()
-
-            # Calculate the price change over a period of time
-            # and display metrics horizontally
-            metrics = ['1D', '1W', '1M', '6M', 'YTD', '1Y', '5Y', 'MAX']
-            cols_metrics = st.columns(len(metrics))
-            for col_idx, metric in enumerate(metrics):
-                gain, change_pct = helper.calculate_metric_gain_and_change(
-                    metric,
-                    df_development
+                fig_development.update_layout(
+                    xaxis_title='Date',
+                    yaxis_title=Y_AXIS_TITLE
                 )
 
-                cols_metrics[col_idx].metric(
-                    label=metric,
-                    value=gain,
-                    delta=change_pct,
-                    delta_color='off' if change_pct == '-' else 'normal'
-                )
+                st.plotly_chart(fig_development, use_container_width=True)
 
-            # Plot development
-            fig_development = px.line(
-                df_development.reset_index(),
-                x='Date',
-                y='Close',
-                title=ticker_names[symbol]
-            )
+                # Display additional information
+                key_and_info = {
+                    'quoteType': 'Security Type',
+                    'industry': 'Industry',
+                    'sector': 'Sector',
+                    'financialCurrency': 'Financial Currency'
+                }
 
-            Y_AXIS_TITLE = 'Close Price'
-            is_currency_known = 'currency' in tickers[symbol].info
-            if is_currency_known:
-                Y_AXIS_TITLE += f' ({tickers[symbol].info['currency']})'
+                # Display only those keys that appear in ticker info
+                info_existing = {k:i for k,i in key_and_info.items() if k in tickers[symbol].info}
+                cols_info = st.columns(len(info_existing))
+                for i, (key, info_type) in enumerate(info_existing.items()):
+                    cols_info[i].subheader(info_type)
+                    info = tickers[symbol].info[key]
+                    info = helper.change_info_spelling(info)
+                    cols_info[i].write(info)
 
-            fig_development.update_layout(
-                xaxis_title='Date',
-                yaxis_title=Y_AXIS_TITLE
-            )
+                st.divider()
 
-            st.plotly_chart(fig_development, use_container_width=True)
-
-            # Display additional information
-            key_and_info = {
-                'quoteType': 'Security Type',
-                'industry': 'Industry',
-                'sector': 'Sector',
-                'financialCurrency': 'Financial Currency'
-            }
-
-            # Display only those keys that appear in ticker info
-            info_existing = {k:i for k,i in key_and_info.items() if k in tickers[symbol].info}
-            cols_info = st.columns(len(info_existing))
-            for i, (key, info_type) in enumerate(info_existing.items()):
-                cols_info[i].subheader(info_type)
-                info = tickers[symbol].info[key]
-                info = helper.change_info_spelling(info)
-                cols_info[i].write(info)
-
-            st.divider()
-
-            if 'longBusinessSummary' in tickers[symbol].info:
-                st.subheader('Summary')
-                # https://discuss.streamlit.io/t/using-st-write-with-sign-gives-formatted-text/48387
-                st.write(tickers[symbol].info['longBusinessSummary'].replace('$', r'\$'))
+                if 'longBusinessSummary' in tickers[symbol].info:
+                    st.subheader('Summary')
+                    # https://discuss.streamlit.io/t/using-st-write-with-sign-gives-formatted-text/48387
+                    st.write(tickers[symbol].info['longBusinessSummary'].replace('$', r'\$'))
